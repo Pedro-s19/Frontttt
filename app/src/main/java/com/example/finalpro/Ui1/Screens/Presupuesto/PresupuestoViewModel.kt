@@ -1,0 +1,48 @@
+package com.example.finalpro.Ui1.Screens.Presupuesto
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.finalpro.Data.Remote.Dto.Request.PresupuestoRequest
+import com.example.finalpro.Data.Remote.Dto.Response.PresupuestoResponse
+import com.example.finalpro.Data.Repository.PresupuestoRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+import javax.inject.Inject
+
+@HiltViewModel
+class PresupuestoViewModel @Inject constructor(
+    private val presupuestoRepository: PresupuestoRepository
+) : ViewModel() {
+    private val _presupuestos = MutableStateFlow<List<PresupuestoResponse>>(emptyList())
+    val presupuestos: StateFlow<List<PresupuestoResponse>> = _presupuestos.asStateFlow()
+    private val _loading = MutableStateFlow(false)
+    val loading: StateFlow<Boolean> = _loading.asStateFlow()
+
+    init { cargarPresupuestos(LocalDate.now().year, LocalDate.now().monthValue) }
+
+    fun cargarPresupuestos(anio: Int, mes: Int) {
+        viewModelScope.launch {
+            _loading.value = true
+            presupuestoRepository.listar(anio, mes).onSuccess { _presupuestos.value = it }
+            _loading.value = false
+        }
+    }
+
+    fun actualizarPresupuesto(id: String, limiteMonto: Double) {
+        viewModelScope.launch {
+            val p = _presupuestos.value.find { it.id == id } ?: return@launch
+            presupuestoRepository.actualizar(id, PresupuestoRequest(p.categoriaId, p.anio, p.mes, limiteMonto)
+            ).onSuccess { cargarPresupuestos(p.anio, p.mes) }
+        }
+    }
+
+    fun eliminarPresupuesto(id: String, anio: Int, mes: Int) {
+        viewModelScope.launch {
+            presupuestoRepository.eliminar(id).onSuccess { cargarPresupuestos(anio, mes) }
+        }
+    }
+}
