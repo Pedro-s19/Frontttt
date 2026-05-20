@@ -39,7 +39,16 @@ class GastosViewModel @Inject constructor(
 
     fun crearGasto(monto: Double, descripcion: String, fecha: String, categoriaId: String) {
         viewModelScope.launch {
-            gastoRepository.crear(GastoRequest(monto, descripcion, fecha, categoriaId)).onSuccess { cargarDatos() }
+            gastoRepository.crear(GastoRequest(monto, descripcion, fecha, categoriaId))
+                .onSuccess { cargarDatos() }
+        }
+    }
+
+    fun actualizarGasto(id: String, monto: Double, descripcion: String, fecha: String) {
+        viewModelScope.launch {
+            val categoriaId = _gastos.value.find { it.id == id }?.categoria?.id ?: return@launch
+            gastoRepository.actualizar(id, GastoRequest(monto, descripcion, fecha, categoriaId))
+                .onSuccess { cargarDatos() }
         }
     }
 

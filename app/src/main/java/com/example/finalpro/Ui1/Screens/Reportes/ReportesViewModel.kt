@@ -23,14 +23,21 @@ class ReportesViewModel @Inject constructor(
     val distribucion: StateFlow<DistribucionCategoriaResponse?> = _distribucion.asStateFlow()
     private val _loading = MutableStateFlow(true)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error.asStateFlow()
 
     init { cargar(LocalDate.now().year, LocalDate.now().monthValue) }
 
     fun cargar(anio: Int, mes: Int) {
         viewModelScope.launch {
             _loading.value = true
-            reporteRepository.tendenciaDiaria(anio, mes).onSuccess { _tendencia.value = it }
-            reporteRepository.distribucionCategorias(anio, mes).onSuccess { _distribucion.value = it }
+            _error.value = null
+            reporteRepository.tendenciaDiaria(anio, mes)
+                .onSuccess { _tendencia.value = it }
+                .onFailure { _error.value = it.message }
+            reporteRepository.distribucionCategorias(anio, mes)
+                .onSuccess { _distribucion.value = it }
+                .onFailure { if (_error.value == null) _error.value = it.message }
             _loading.value = false
         }
     }

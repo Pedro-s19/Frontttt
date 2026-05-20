@@ -13,7 +13,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.example.finalpro.Data.Remote.Dto.Response.IngresoResponse
 import com.example.finalpro.Ui1.Components.AgregarIngresoSheet
 import com.example.finalpro.Ui1.Components.BottomNavBar
 import com.example.finalpro.Ui1.Components.TransaccionItem
@@ -47,10 +46,7 @@ fun IngresosScreen(
         },
         bottomBar = { BottomNavBar(navController) },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showSheet = true },
-                containerColor = AccentPrimary
-            ) {
+            FloatingActionButton(onClick = { showSheet = true }, containerColor = AccentPrimary) {
                 Icon(Icons.Rounded.Add, null, tint = androidx.compose.ui.graphics.Color.White)
             }
         }
@@ -61,24 +57,21 @@ fun IngresosScreen(
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 16.dp),
+                modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(
-                    items = ingresos,
-                    key = { it.id }
-                ) { ingreso ->
+                items(items = ingresos, key = { it.id }) { ingreso ->
                     TransaccionItem(
-                        descripcion = ingreso.descripcion ?: "Sin descripción",
+                        descripcion = ingreso.descripcion ?: "Sin descripcion",
                         monto = "+${formatMoney(ingreso.monto, ingreso.moneda)}",
                         fecha = ingreso.fecha,
                         categoria = "Ingreso",
                         icono = "💵",
                         colorMonto = ColorIngreso,
-                        onDelete = { vm.eliminarIngreso(ingreso.id) }
+                        onDelete = { vm.eliminarIngreso(ingreso.id) },
+                        onEdit = { monto, desc, fecha ->
+                            vm.actualizarIngreso(ingreso.id, monto, desc, fecha)
+                        }
                     )
                 }
                 item { Spacer(Modifier.height(80.dp)) }
@@ -87,9 +80,7 @@ fun IngresosScreen(
     }
 
     if (showSheet) {
-        AgregarIngresoSheet(
-            onDismiss = { showSheet = false }
-        ) { monto, desc, fecha ->
+        AgregarIngresoSheet(onDismiss = { showSheet = false }) { monto, desc, fecha ->
             vm.crearIngreso(monto, desc, fecha)
             showSheet = false
         }

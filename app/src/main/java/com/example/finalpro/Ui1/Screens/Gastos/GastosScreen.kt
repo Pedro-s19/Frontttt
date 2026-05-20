@@ -47,10 +47,7 @@ fun GastosScreen(
         },
         bottomBar = { BottomNavBar(navController) },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showSheet = true },
-                containerColor = AccentPrimary
-            ) {
+            FloatingActionButton(onClick = { showSheet = true }, containerColor = AccentPrimary) {
                 Icon(Icons.Rounded.Add, null, tint = androidx.compose.ui.graphics.Color.White)
             }
         }
@@ -61,21 +58,21 @@ fun GastosScreen(
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 16.dp),
+                modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(gastos, key = { it.id }) { gasto ->
                     TransaccionItem(
-                        descripcion = gasto.descripcion ?: "Sin descripción",
+                        descripcion = gasto.descripcion ?: "Sin descripcion",
                         monto = "-${formatMoney(gasto.monto, gasto.moneda)}",
                         fecha = gasto.fecha,
                         categoria = gasto.categoria?.nombre ?: "General",
                         icono = gasto.categoria?.icono,
                         colorMonto = ColorGasto,
-                        onDelete = { vm.eliminarGasto(gasto.id) }
+                        onDelete = { vm.eliminarGasto(gasto.id) },
+                        onEdit = { monto, desc, fecha ->
+                            vm.actualizarGasto(gasto.id, monto, desc, fecha)
+                        }
                     )
                 }
                 item { Spacer(Modifier.height(80.dp)) }

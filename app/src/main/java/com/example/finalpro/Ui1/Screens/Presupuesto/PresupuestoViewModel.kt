@@ -3,7 +3,9 @@ package com.example.finalpro.Ui1.Screens.Presupuesto
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.finalpro.Data.Remote.Dto.Request.PresupuestoRequest
+import com.example.finalpro.Data.Remote.Dto.Response.CategoriaResponse
 import com.example.finalpro.Data.Remote.Dto.Response.PresupuestoResponse
+import com.example.finalpro.Data.Repository.CategoriaRepository
 import com.example.finalpro.Data.Repository.PresupuestoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,14 +17,29 @@ import javax.inject.Inject
 
 @HiltViewModel
 class PresupuestoViewModel @Inject constructor(
-    private val presupuestoRepository: PresupuestoRepository
+    private val presupuestoRepository: PresupuestoRepository,
+    private val categoriaRepository: CategoriaRepository
 ) : ViewModel() {
     private val _presupuestos = MutableStateFlow<List<PresupuestoResponse>>(emptyList())
     val presupuestos: StateFlow<List<PresupuestoResponse>> = _presupuestos.asStateFlow()
+    private val _categorias = MutableStateFlow<List<CategoriaResponse>>(emptyList())
+    val categorias: StateFlow<List<CategoriaResponse>> = _categorias.asStateFlow()
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
 
-    init { cargarPresupuestos(LocalDate.now().year, LocalDate.now().monthValue) }
+    private val anioActual = LocalDate.now().year
+    private val mesActual = LocalDate.now().monthValue
+
+    init { cargarDatos() }
+
+    fun cargarDatos() {
+        viewModelScope.launch {
+            _loading.value = true
+            presupuestoRepository.listar(anioActual, mesActual).onSuccess { _presupuestos.value = it }
+            categoriaRepository.listar().onSuccess { _categorias.value = it }
+            _loading.value = false
+        }
+    }
 
     fun cargarPresupuestos(anio: Int, mes: Int) {
         viewModelScope.launch {
@@ -32,11 +49,19 @@ class PresupuestoViewModel @Inject constructor(
         }
     }
 
+    fun crearPresupuesto(categoriaId: String, limiteMonto: Double) {
+        viewModelScope.launch {
+            presupuestoRepository.crear(
+                PresupuestoRequest(categoriaId, anioActual, mesActual, limiteMonto)
+            ).onSuccess { cargarDatos() }
+        }
+    }
+
     fun actualizarPresupuesto(id: String, limiteMonto: Double) {
         viewModelScope.launch {
             val p = _presupuestos.value.find { it.id == id } ?: return@launch
-            presupuestoRepository.actualizar(id, PresupuestoRequest(p.categoriaId, p.anio, p.mes, limiteMonto)
-            ).onSuccess { cargarPresupuestos(p.anio, p.mes) }
+            presupuestoRepository.actualizar(id, PresupuestoRequest(p.categoriaId, p.anio, p.mes, limiteMonto))
+                .onSuccess { cargarPresupuestos(p.anio, p.mes) }
         }
     }
 

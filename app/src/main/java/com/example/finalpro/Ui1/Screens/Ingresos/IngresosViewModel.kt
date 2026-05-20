@@ -37,6 +37,13 @@ class IngresosViewModel @Inject constructor(
         }
     }
 
+    fun actualizarIngreso(id: String, monto: Double, descripcion: String, fecha: String) {
+        viewModelScope.launch {
+            ingresoRepository.actualizar(id, IngresoRequest(monto, descripcion, fecha))
+                .onSuccess { cargarIngresos() }
+        }
+    }
+
     fun eliminarIngreso(id: String) {
         viewModelScope.launch { ingresoRepository.eliminar(id).onSuccess { cargarIngresos() } }
     }
