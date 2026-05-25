@@ -45,7 +45,10 @@ fun BottomNavBar(navController: NavController) {
                 onClick = {
                     if (currentRoute != item.route) {
                         navController.navigate(item.route) {
-                            popUpTo(Screen.Dashboard.route) { saveState = true }
+                            popUpTo(Screen.Dashboard.route) {
+                                saveState = true
+                                inclusive = false
+                            }
                             launchSingleTop = true
                             restoreState = true
                         }

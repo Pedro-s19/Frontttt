@@ -20,10 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.example.finalpro.Ui1.Components.AgregarGastoSheet
-import com.example.finalpro.Ui1.Components.BottomNavBar
-import com.example.finalpro.Ui1.Components.SaldoDisponibleBanner
-import com.example.finalpro.Ui1.Components.TransaccionItem
+import com.example.finalpro.Ui1.Components.*
 import com.example.finalpro.Ui1.Theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -32,34 +29,55 @@ fun GastosScreen(
     navController: NavController,
     vm: GastosViewModel = hiltViewModel()
 ) {
+    val gastos          by vm.gastos.collectAsState()
+    val categorias      by vm.categorias.collectAsState()
+    val loading         by vm.loading.collectAsState()
+    val saldo           by vm.saldoDisponible.collectAsState()
+    val alertasActivas  by vm.alertasActivas.collectAsState()
+    val logroNuevo      by vm.logroNuevo.collectAsState()
 
-    val gastos by vm.gastos.collectAsState()
-    val categorias by vm.categorias.collectAsState()
-    val loading by vm.loading.collectAsState()
-    val saldo by vm.saldoDisponible.collectAsState()
-    val alertas by vm.alertas.collectAsState()
-
-    var showSheet by remember { mutableStateOf(false) }
+    var showSheet       by remember { mutableStateOf(false) }
+    // Parámetros del gasto pendiente de confirmar (retenidos mientras aparece el dialog)
+    var pendingGasto    by remember { mutableStateOf<Triple<Double, String, String>?>(null) }
+    var pendingCatId    by remember { mutableStateOf("") }
     var filtroCategoria by remember { mutableStateOf<String?>(null) }
 
     val gastosFiltrados = remember(gastos, filtroCategoria) {
-        if (filtroCategoria == null) {
-            gastos
-        } else {
-            gastos.filter { it.categoria?.nombre == filtroCategoria }
-        }
+        if (filtroCategoria == null) gastos
+        else gastos.filter { it.categoria?.nombre == filtroCategoria }
     }
-
-    // ✅ CORREGIDO
     val nombresCategoria = remember(gastos) {
         gastos.mapNotNull { it.categoria?.nombre }.distinct()
     }
-
     val moneda = gastos.firstOrNull()?.moneda ?: "COP"
+    
+    if (alertasActivas.isNotEmpty()) {
+        AlertaPresupuestoDialog(
+            alertas = alertasActivas,
+            onDismiss = {
+
+                vm.dismissAlertas()
+                pendingGasto?.let { (monto, desc, fecha) ->
+                    vm.crearGasto(monto, desc, fecha, pendingCatId)
+                }
+                pendingGasto = null
+                showSheet = false
+            },
+            onCancelar = {
+                vm.dismissAlertas()
+                pendingGasto = null
+                // Mantiene el sheet abierto para que el usuario corrija el monto
+            }
+        )
+    }
+
+    // ✅ Dialog de logro desbloqueado
+    logroNuevo?.let { logro ->
+        LogroDesbloqueadoDialog(logro = logro, onDismiss = { vm.dismissLogro() })
+    }
 
     Scaffold(
         containerColor = BgPrimary,
-
         topBar = {
             Column(
                 modifier = Modifier
@@ -68,142 +86,56 @@ fun GastosScreen(
                     .padding(horizontal = 20.dp)
                     .padding(top = 16.dp, bottom = 8.dp)
             ) {
-
                 Text(
-                    text = "Gastos",
+                    "Gastos",
                     style = MaterialTheme.typography.headlineMedium,
                     color = TextPrimary,
                     fontWeight = FontWeight.Bold
                 )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                SaldoDisponibleBanner(
-                    saldo = saldo,
-                    moneda = moneda
-                )
-
-                if (alertas.isNotEmpty()) {
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = ColorWarning.copy(alpha = 0.08f)
-                        ),
-                        border = BorderStroke(
-                            1.dp,
-                            ColorWarning.copy(alpha = 0.4f)
-                        )
-                    ) {
-
-                        Column(
-                            modifier = Modifier.padding(12.dp)
-                        ) {
-
-                            Text(
-                                text = "⚠️ Alertas",
-                                style = MaterialTheme.typography.titleSmall,
-                                color = ColorWarning,
-                                fontWeight = FontWeight.Bold
-                            )
-
-                            alertas.forEach { alerta ->
-
-                                Text(
-                                    text = "• $alerta",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = TextPrimary
-                                )
-                            }
-                        }
-                    }
+                Spacer(Modifier.height(6.dp))
+                if (saldo < Double.MAX_VALUE) {
+                    SaldoDisponibleBanner(saldo = saldo, moneda = moneda)
                 }
             }
         },
-
-        bottomBar = {
-            BottomNavBar(navController)
-        },
-
+        bottomBar = { BottomNavBar(navController) },
         floatingActionButton = {
-
             FloatingActionButton(
-                onClick = {
-                    showSheet = true
-                },
+                onClick = { showSheet = true },
                 containerColor = GreenPrimary,
                 shape = CircleShape
             ) {
-
-                Icon(
-                    imageVector = Icons.Rounded.Add,
-                    contentDescription = null,
-                    tint = Color.White
-                )
+                Icon(Icons.Rounded.Add, null, tint = Color.White)
             }
         }
-
     ) { padding ->
-
         if (loading) {
-
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-
-                CircularProgressIndicator(
-                    color = GreenPrimary
-                )
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = GreenPrimary)
             }
-
         } else {
-
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
                     .padding(horizontal = 16.dp),
-
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-
                 if (nombresCategoria.isNotEmpty()) {
-
                     item {
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-
+                        Spacer(Modifier.height(4.dp))
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             item {
-
                                 FilterChip(
                                     selected = filtroCategoria == null,
-
-                                    onClick = {
-                                        filtroCategoria = null
-                                    },
-
-                                    label = {
-                                        Text(
-                                            text = "Todos",
-                                            fontSize = 12.sp
-                                        )
-                                    },
-
+                                    onClick = { filtroCategoria = null },
+                                    label = { Text("Todos", fontSize = 12.sp) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = GreenPrimary,
                                         selectedLabelColor = Color.White,
                                         containerColor = BgSurface,
                                         labelColor = TextSecondary
                                     ),
-
                                     border = FilterChipDefaults.filterChipBorder(
                                         enabled = true,
                                         selected = filtroCategoria == null,
@@ -212,35 +144,19 @@ fun GastosScreen(
                                     )
                                 )
                             }
-
                             items(nombresCategoria) { nombre ->
-
                                 FilterChip(
                                     selected = filtroCategoria == nombre,
-
                                     onClick = {
-                                        filtroCategoria =
-                                            if (filtroCategoria == nombre) {
-                                                null
-                                            } else {
-                                                nombre
-                                            }
+                                        filtroCategoria = if (filtroCategoria == nombre) null else nombre
                                     },
-
-                                    label = {
-                                        Text(
-                                            text = nombre,
-                                            fontSize = 12.sp
-                                        )
-                                    },
-
+                                    label = { Text(nombre, fontSize = 12.sp) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = GreenPrimary,
                                         selectedLabelColor = Color.White,
                                         containerColor = BgSurface,
                                         labelColor = TextSecondary
                                     ),
-
                                     border = FilterChipDefaults.filterChipBorder(
                                         enabled = true,
                                         selected = filtroCategoria == nombre,
@@ -253,116 +169,57 @@ fun GastosScreen(
                     }
                 }
 
-                item {
-                    Spacer(modifier = Modifier.height(4.dp))
-                }
+                item { Spacer(Modifier.height(4.dp)) }
 
                 if (gastosFiltrados.isEmpty()) {
-
                     item {
-
                         Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 48.dp),
-
+                            Modifier.fillMaxWidth().padding(top = 48.dp),
                             contentAlignment = Alignment.Center
                         ) {
-
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-
-                                Text(
-                                    text = "🧾",
-                                    fontSize = 32.sp
-                                )
-
-                                Spacer(
-                                    modifier = Modifier.height(8.dp)
-                                )
-
-                                Text(
-                                    text = "Sin gastos registrados",
-                                    color = TextSecondary,
-                                    fontWeight = FontWeight.Bold
-                                )
-
-                                Text(
-                                    text = "Toca + para agregar uno",
-                                    color = TextMuted,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("🧾", fontSize = 32.sp)
+                                Spacer(Modifier.height(8.dp))
+                                Text("Sin gastos registrados", color = TextSecondary, fontWeight = FontWeight.Bold)
+                                Text("Toca + para agregar uno", color = TextMuted, style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     }
                 }
 
-                items(
-                    items = gastosFiltrados,
-                    key = { it.id }
-                ) { gasto ->
-
+                items(items = gastosFiltrados, key = { it.id }) { gasto ->
                     TransaccionItem(
                         descripcion = gasto.descripcion ?: "Sin descripción",
-
                         monto = "-${formatMoney(gasto.monto, gasto.moneda)}",
-
                         fecha = gasto.fecha,
-
                         categoria = gasto.categoria?.nombre ?: "General",
-
                         icono = gasto.categoria?.icono,
-
                         colorMonto = ColorGasto,
-
-                        onDelete = {
-                            vm.eliminarGasto(gasto.id)
-                        },
-
-                        onEdit = { monto, desc, fecha ->
-
-                            vm.actualizarGasto(
-                                gasto.id,
-                                monto,
-                                desc,
-                                fecha
-                            )
-                        }
+                        onDelete = { vm.eliminarGasto(gasto.id) },
+                        onEdit = { monto, desc, fecha -> vm.actualizarGasto(gasto.id, monto, desc, fecha) }
                     )
                 }
 
-                item {
-                    Spacer(modifier = Modifier.height(80.dp))
-                }
+                item { Spacer(Modifier.height(80.dp)) }
             }
         }
     }
 
     if (showSheet) {
-
         AgregarGastoSheet(
-
-            onDismiss = {
-                showSheet = false
-            },
-
+            onDismiss = { showSheet = false },
             onConfirm = { monto, desc, fecha, catId ->
-
-                vm.crearGasto(
-                    monto,
-                    desc,
-                    fecha,
-                    catId
-                )
-
-                showSheet = false
+                pendingGasto = Triple(monto, desc, fecha)
+                pendingCatId = catId
+                val hayAlertas = vm.verificarAlertas()
+                if (!hayAlertas) {
+                    vm.crearGasto(monto, desc, fecha, catId)
+                    pendingGasto = null
+                    showSheet = false
+                }
             },
-
             categorias = categorias,
-
             saldoDisponible = saldo,
-
             moneda = moneda
         )
     }
