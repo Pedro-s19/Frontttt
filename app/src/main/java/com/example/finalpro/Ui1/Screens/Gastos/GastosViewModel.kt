@@ -5,26 +5,39 @@ import androidx.lifecycle.viewModelScope
 import com.example.finalpro.Data.Remote.Dto.Request.GastoRequest
 import com.example.finalpro.Data.Remote.Dto.Response.CategoriaResponse
 import com.example.finalpro.Data.Remote.Dto.Response.GastoResponse
+import com.example.finalpro.Data.Repository.AlertaRepository
 import com.example.finalpro.Data.Repository.CategoriaRepository
 import com.example.finalpro.Data.Repository.GastoRepository
+import com.example.finalpro.Data.Repository.ReporteRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import javax.inject.Inject
 
 @HiltViewModel
 class GastosViewModel @Inject constructor(
     private val gastoRepository: GastoRepository,
-    private val categoriaRepository: CategoriaRepository
+    private val categoriaRepository: CategoriaRepository,
+    private val reporteRepository: ReporteRepository,
+    private val alertaRepository: AlertaRepository
 ) : ViewModel() {
     private val _gastos = MutableStateFlow<List<GastoResponse>>(emptyList())
     val gastos: StateFlow<List<GastoResponse>> = _gastos.asStateFlow()
+
     private val _categorias = MutableStateFlow<List<CategoriaResponse>>(emptyList())
     val categorias: StateFlow<List<CategoriaResponse>> = _categorias.asStateFlow()
+
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
+
+    private val _ingresosMes = MutableStateFlow(0.0)
+    val ingresosMes: StateFlow<Double> = _ingresosMes.asStateFlow()
+
+    private val _alertas = MutableStateFlow<List<String>>(emptyList())
+    val alertas: StateFlow<List<String>> = _alertas.asStateFlow()
 
     init { cargarDatos() }
 
@@ -33,6 +46,12 @@ class GastosViewModel @Inject constructor(
             _loading.value = true
             gastoRepository.listar().onSuccess { _gastos.value = it }
             categoriaRepository.listar().onSuccess { _categorias.value = it }
+            val hoy = LocalDate.now()
+            reporteRepository.resumenMensual(hoy.year, hoy.monthValue)
+                .onSuccess { _ingresosMes.value = it.totalIngresos }
+            alertaRepository.obtenerAlertas()
+                .onSuccess { _alertas.value = it.alertas }
+                .onFailure { _alertas.value = emptyList() }
             _loading.value = false
         }
     }

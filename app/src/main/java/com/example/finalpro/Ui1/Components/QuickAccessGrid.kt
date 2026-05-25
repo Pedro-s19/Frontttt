@@ -1,7 +1,6 @@
 package com.example.finalpro.Ui1.Components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -21,15 +20,25 @@ fun QuickAccessGrid(navController: NavController) {
         Triple("Gastos",      Icons.Rounded.ShoppingCart,  Screen.Gastos.route),
         Triple("Ingresos",    Icons.Rounded.AttachMoney,   Screen.Ingresos.route),
         Triple("Presupuesto", Icons.Rounded.PieChart,      Screen.Presupuesto.route),
-        Triple("Metas",       Icons.Rounded.EmojiEvents,   Screen.Metas.route)
+        Triple("Metas",       Icons.Rounded.EmojiEvents,   Screen.Metas.route),
+        Triple("Comparar", Icons.Rounded.BarChart,   Screen.Comparativas.route)
     )
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         items.forEach { (title, icon, route) ->
             Card(
                 modifier = Modifier
                     .weight(1f)
-                    .aspectRatio(1f)
-                    .clickable { navController.navigate(route) },
+                    .aspectRatio(1f),
+                onClick = {
+                    navController.navigate(route){
+                        popUpTo(Screen.Dashboard.route){
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+
+                },
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = BgCard),
                 border = BorderStroke(1.dp, Border)

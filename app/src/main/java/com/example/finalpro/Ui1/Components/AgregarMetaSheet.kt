@@ -10,19 +10,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.finalpro.Ui1.Screens.Auth.financeTextFieldColors
 import com.example.finalpro.Ui1.Theme.AccentPrimary
+import com.example.finalpro.Ui1.Theme.BgCard
 import com.example.finalpro.Ui1.Theme.BgSurface
 import com.example.finalpro.Ui1.Theme.TextPrimary
+import com.example.finalpro.Ui1.Theme.TextSecondary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AgregarMetaSheet(
     onDismiss: () -> Unit,
-    onConfirm: (nombre: String, montoObjetivo: Double, fechaLimite: String?) -> Unit
+    onConfirm: (nombre: String, montoObjetivo: Double, fechaLimite: String?) -> Unit,
+    balanceDisponible: Double = 0.0
 ) {
     var nombre by remember { mutableStateOf("") }
     var monto by remember { mutableStateOf("") }
     var fechaLimite by remember { mutableStateOf("") }
     var datePickerOpen by remember { mutableStateOf(false) }
+    var showWarning by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -45,13 +49,10 @@ fun AgregarMetaSheet(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            OutlinedTextField(
+            AmountTextField(
                 value = monto,
-                onValueChange = { monto = it.filter { c -> c.isDigit() || c == '.' } },
-                label = { Text("Monto objetivo (COP)") },
-                singleLine = true,
-                shape = RoundedCornerShape(14.dp),
-                colors = financeTextFieldColors(),
+                onValueChange = { monto = it },
+                label = "Monto objetivo (COP)",
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -90,7 +91,13 @@ fun AgregarMetaSheet(
                 }
                 Button(
                     onClick = {
-                        monto.toDoubleOrNull()?.let { onConfirm(nombre, it, fechaLimite.ifEmpty { null }) }
+                        monto.toDoubleOrNull()?.let { m ->
+                            if (balanceDisponible > 0 && m > balanceDisponible) {
+                                showWarning = true
+                            } else {
+                                onConfirm(nombre, m, fechaLimite.ifEmpty { null })
+                            }
+                        }
                     },
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = AccentPrimary),
@@ -100,5 +107,25 @@ fun AgregarMetaSheet(
                 }
             }
         }
+    }
+
+    if (showWarning) {
+        AlertDialog(
+            onDismissRequest = { showWarning = false },
+            title = { Text("Advertencia", color = TextPrimary) },
+            text = { Text("El monto objetivo supera tu balance disponible. ¿Deseas continuar?", color = TextSecondary) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showWarning = false
+                    monto.toDoubleOrNull()?.let { m ->
+                        onConfirm(nombre, m, fechaLimite.ifEmpty { null })
+                    }
+                }) { Text("Sí, continuar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showWarning = false }) { Text("Cancelar") }
+            },
+            containerColor = BgCard
+        )
     }
 }

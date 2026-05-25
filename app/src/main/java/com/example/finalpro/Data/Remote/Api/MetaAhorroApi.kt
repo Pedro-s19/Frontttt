@@ -7,6 +7,7 @@ import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -22,6 +23,12 @@ interface MetaAhorroApi {
     suspend fun agregarAhorro(
         @Path("id") id: String,
         @Query("montoCOP") montoCOP: Double
+    ): Response<MetaAhorroResponse>
+
+    @PUT("api/metas-ahorro/{id}")
+    suspend fun actualizar(
+        @Path("id") id: String,
+        @Body request: MetaAhorroRequest
     ): Response<MetaAhorroResponse>
 
     @DELETE("api/metas-ahorro/{id}")

@@ -13,6 +13,10 @@ sealed class Screen(val route: String) {
     object Presupuesto: Screen("presupuesto")
     object Metas      : Screen("metas")
     object Reportes   : Screen("reportes")
+    object Comparativas : Screen("comparativas")
+    object AdminUsuarios : Screen("admin_usuarios")
+    object Recurrentes : Screen("recurrentes")
+    object Logros : Screen("logros")
 }
 
 data class BottomNavItem(val label: String, val route: String, val icon: ImageVector)

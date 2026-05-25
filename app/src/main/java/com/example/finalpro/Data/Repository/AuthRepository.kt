@@ -25,7 +25,8 @@ class AuthRepository @Inject constructor(
     suspend fun register(request: RegistroRequest): Result<Unit> = runCatching {
         val resp = api.register(request)
         if (!resp.isSuccessful) {
-            throw Exception("Error ${resp.code()}: ${resp.message()}")
+            val errorBody = resp.errorBody()?.string() ?: resp.message()
+            throw Exception(errorBody)
         }
     }
 }

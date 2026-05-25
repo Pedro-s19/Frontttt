@@ -37,11 +37,10 @@ class LoginViewModel @Inject constructor(
             _state.value = AuthState.Loading
             authRepository.login(LoginRequest(email.trim(), contrasena))
                 .onSuccess { jwt ->
-                    sessionManager.saveSession(jwt.token, jwt.email)
+                    sessionManager.saveSession(jwt.token, jwt.email,jwt.rol)
                     _state.value = AuthState.Success
                 }
                 .onFailure { error ->
-                    // Muestra el error real para poder diagnosticar
                     _state.value = AuthState.Error(error.message ?: "Error desconocido")
                 }
         }

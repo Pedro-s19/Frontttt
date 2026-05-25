@@ -13,5 +13,5 @@ interface AuthApi {
     suspend fun login(@Body request: LoginRequest): Response<JwtResponse>
 
     @POST("api/auth/registro")
-    suspend fun register(@Body request: RegistroRequest): Response<String>
+    suspend fun register(@Body request: RegistroRequest): Response<Unit>
 }

@@ -23,11 +23,13 @@ class SessionManager @Inject constructor(
     private val TOKEN_KEY   = stringPreferencesKey("jwt_token")
     private val EMAIL_KEY   = stringPreferencesKey("user_email")
     private val MONEDA_KEY  = stringPreferencesKey("moneda_pref")
+    private val ROL_KEY     = stringPreferencesKey("user_role")   // ✅ corregido
 
-    suspend fun saveSession(token: String, email: String) {
+    suspend fun saveSession(token: String, email: String, rol: String = "ROLE_USER") {
         context.dataStore.edit { prefs ->
             prefs[TOKEN_KEY]  = token
             prefs[EMAIL_KEY]  = email
+            prefs[ROL_KEY]    = rol
         }
     }
 
@@ -42,6 +44,8 @@ class SessionManager @Inject constructor(
     }
 
     fun getMoneda(): Flow<String> = context.dataStore.data.map { it[MONEDA_KEY] ?: "COP" }
+
+    fun getRol(): Flow<String?> = context.dataStore.data.map { it[ROL_KEY] }   // ✅ corregido
 
     suspend fun clearSession() {
         context.dataStore.edit { it.clear() }

@@ -19,7 +19,9 @@ import java.time.format.DateTimeFormatter
 fun AgregarGastoSheet(
     onDismiss: () -> Unit,
     onConfirm: (monto: Double, descripcion: String, fecha: String, categoriaId: String) -> Unit,
-    categorias: List<CategoriaResponse>
+    categorias: List<CategoriaResponse>,
+    ingresoMensual: Double = 0.0,
+    gastoAcumulado: Double = 0.0
 ) {
     var monto by remember { mutableStateOf("") }
     var descripcion by remember { mutableStateOf("") }
@@ -27,6 +29,7 @@ fun AgregarGastoSheet(
     var selectedCategoria by remember { mutableStateOf<CategoriaResponse?>(categorias.firstOrNull()) }
     var expanded by remember { mutableStateOf(false) }
     var datePickerOpen by remember { mutableStateOf(false) }
+    var showWarning by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -39,13 +42,10 @@ fun AgregarGastoSheet(
         ) {
             Text("Agregar gasto", style = MaterialTheme.typography.headlineSmall, color = TextPrimary)
 
-            OutlinedTextField(
+            AmountTextField(
                 value = monto,
-                onValueChange = { monto = it.filter { c -> c.isDigit() || c == '.' } },
-                label = { Text("Monto (COP)") },
-                singleLine = true,
-                shape = RoundedCornerShape(14.dp),
-                colors = financeTextFieldColors(),
+                onValueChange = { monto = it },
+                label = "Monto (COP)",
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -93,9 +93,7 @@ fun AgregarGastoSheet(
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                     shape = RoundedCornerShape(14.dp),
                     colors = financeTextFieldColors(),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(MenuAnchorType.PrimaryEditable)  // 🔁 Reemplazo del deprecated
+                    modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryEditable)
                 )
                 ExposedDropdownMenu(
                     expanded = expanded,
@@ -128,8 +126,12 @@ fun AgregarGastoSheet(
                 Button(
                     onClick = {
                         monto.toDoubleOrNull()?.let { m ->
-                            selectedCategoria?.let {
-                                onConfirm(m, descripcion, fecha, it.id)
+                            selectedCategoria?.let { cat ->
+                                if (ingresoMensual > 0 && (gastoAcumulado + m) > ingresoMensual) {
+                                    showWarning = true
+                                } else {
+                                    onConfirm(m, descripcion, fecha, cat.id)
+                                }
                             }
                         }
                     },
@@ -142,8 +144,33 @@ fun AgregarGastoSheet(
             }
         }
     }
+
+    if (showWarning) {
+        AlertDialog(
+            onDismissRequest = { showWarning = false },
+            title = { Text("Advertencia", color = TextPrimary) },
+            text = { Text("Este gasto hará que excedas tus ingresos mensuales. ¿Estás seguro?", color = TextSecondary) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showWarning = false
+                    monto.toDoubleOrNull()?.let { m ->
+                        selectedCategoria?.let { cat ->
+                            onConfirm(m, descripcion, fecha, cat.id)
+                        }
+                    }
+                }) { Text("Sí, continuar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showWarning = false }) { Text("Cancelar") }
+            },
+            containerColor = BgCard
+        )
+    }
 }
 
+// -----------------------------------------------------------
+// Componente personalizado DatePickerDialog (el que tenías antes)
+// -----------------------------------------------------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DatePickerDialog(

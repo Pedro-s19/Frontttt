@@ -29,4 +29,11 @@ interface ReporteApi {
         @Query("mes") mes: Int,
         @Query("moneda") moneda: String = "COP"
     ): Response<ResumenMensualResponse>
+
+    @GET("api/reportes/gastos-diarios")
+    suspend fun gastosDiarios(
+        @Query("anio") anio: Int,
+        @Query("mes") mes: Int,
+        @Query("moneda") moneda: String = "COP"
+    ): Response<Map<String, Double>>
 }

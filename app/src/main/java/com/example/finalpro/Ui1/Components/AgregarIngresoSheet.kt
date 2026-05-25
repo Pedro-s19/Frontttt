@@ -35,13 +35,10 @@ fun AgregarIngresoSheet(
         ) {
             Text("Agregar ingreso", style = MaterialTheme.typography.headlineSmall, color = TextPrimary)
 
-            OutlinedTextField(
+            AmountTextField(
                 value = monto,
-                onValueChange = { monto = it.filter { c -> c.isDigit() || c == '.' } },
-                label = { Text("Monto (COP)") },
-                singleLine = true,
-                shape = RoundedCornerShape(14.dp),
-                colors = financeTextFieldColors(),
+                onValueChange = { monto = it },
+                label = "Monto (COP)",
                 modifier = Modifier.fillMaxWidth()
             )
 

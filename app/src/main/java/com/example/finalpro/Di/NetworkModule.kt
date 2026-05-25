@@ -1,9 +1,13 @@
 package com.example.finalpro.Di
 
 import com.example.finalpro.Data.Local.SessionManager
+import com.example.finalpro.Data.Remote.Api.AdminApi
+import com.example.finalpro.Data.Remote.Api.AlertaApi
 import com.example.finalpro.Data.Remote.Api.AuthApi
 import com.example.finalpro.Data.Remote.Api.CategoriaApi
+import com.example.finalpro.Data.Remote.Api.GamificacionApi
 import com.example.finalpro.Data.Remote.Api.GastoApi
+import com.example.finalpro.Data.Remote.Api.GastoRecurrenteApi
 import com.example.finalpro.Data.Remote.Api.IngresoApi
 import com.example.finalpro.Data.Remote.Api.MetaAhorroApi
 import com.example.finalpro.Data.Remote.Api.PresupuestoApi
@@ -53,4 +57,25 @@ object NetworkModule {
     @Singleton
     fun provideReporteApi(sessionManager: SessionManager): ReporteApi =
         RetrofitClient.build(sessionManager).create(ReporteApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAdminApi(sessionManager: SessionManager): AdminApi =
+        RetrofitClient.build(sessionManager).create(AdminApi::class.java)
+
+    // ✅ NUEVOS PROVEEDORES
+    @Provides
+    @Singleton
+    fun provideAlertaApi(sessionManager: SessionManager): AlertaApi =
+        RetrofitClient.build(sessionManager).create(AlertaApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideGastoRecurrenteApi(sessionManager: SessionManager): GastoRecurrenteApi =
+        RetrofitClient.build(sessionManager).create(GastoRecurrenteApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideGamificacionApi(sessionManager: SessionManager): GamificacionApi =
+        RetrofitClient.build(sessionManager).create(GamificacionApi::class.java)
 }

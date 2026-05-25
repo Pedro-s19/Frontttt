@@ -28,6 +28,10 @@ class MetaAhorroRepository @Inject constructor(
         val resp = api.agregarAhorro(id, montoCOP)
         if (resp.isSuccessful) resp.body()!! else throw Exception(resp.message())
     }
+    suspend fun actualizar(id: String, request: MetaAhorroRequest): Result<MetaAhorroResponse> = runCatching {
+        val resp = api.actualizar(id,request)
+        if(resp.isSuccessful) resp.body()!! else throw Exception(resp.message())
+    }
 
     suspend fun eliminar(id: String): Result<Unit> = runCatching {
         val resp = api.eliminar(id)

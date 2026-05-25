@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
@@ -32,6 +33,18 @@ fun RegisterScreen(
     var pass    by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf("") }
     var passVis by remember { mutableStateOf(false) }
+
+    // Validaciones locales en tiempo real
+    val isEmailValid = remember(email) {
+        android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
+    }
+    val isPasswordValid = remember(pass) {
+        pass.length >= 8 &&
+                pass.any { it.isUpperCase() } &&
+                pass.any { it.isDigit() } &&
+                pass.any { "!@#$%^&*(),.?\":{}|<>".contains(it) }
+    }
+    val passwordsMatch = pass == confirm
 
     // Cuando el registro es exitoso → navega al login y resetea estado
     LaunchedEffect(state) {
@@ -81,9 +94,13 @@ fun RegisterScreen(
                 onValueChange = { email = it },
                 label         = { Text("Correo electrónico") },
                 leadingIcon   = { Icon(Icons.Rounded.Email, null, tint = TextSecondary) },
-                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                    keyboardType = KeyboardType.Email
-                ),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                isError       = email.isNotEmpty() && !isEmailValid,
+                supportingText = {
+                    if (email.isNotEmpty() && !isEmailValid) {
+                        Text("Ingresa un correo válido (ejemplo@dominio.com)", color = ColorGasto)
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 shape    = RoundedCornerShape(14.dp),
                 colors   = financeTextFieldColors()
@@ -94,7 +111,7 @@ fun RegisterScreen(
             OutlinedTextField(
                 value         = pass,
                 onValueChange = { pass = it },
-                label         = { Text("Contraseña (mín. 6 caracteres)") },
+                label         = { Text("Contraseña (mín. 8 caracteres)") },
                 leadingIcon   = { Icon(Icons.Rounded.Lock, null, tint = TextSecondary) },
                 trailingIcon  = {
                     IconButton(onClick = { passVis = !passVis }) {
@@ -106,10 +123,24 @@ fun RegisterScreen(
                 },
                 visualTransformation = if (passVis) VisualTransformation.None
                 else PasswordVisualTransformation(),
+                isError       = pass.isNotEmpty() && !isPasswordValid,
                 modifier = Modifier.fillMaxWidth(),
                 shape    = RoundedCornerShape(14.dp),
                 colors   = financeTextFieldColors()
             )
+
+            // Requisitos de contraseña visibles mientras se escribe
+            if (pass.isNotEmpty()) {
+                Spacer(Modifier.height(4.dp))
+                Column(modifier = Modifier.fillMaxWidth().padding(start = 4.dp)) {
+                    Text("La contraseña debe:", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                    RequirementRow("Mínimo 8 caracteres", pass.length >= 8)
+                    RequirementRow("Al menos una mayúscula", pass.any { it.isUpperCase() })
+                    RequirementRow("Al menos un número", pass.any { it.isDigit() })
+                    RequirementRow("Al menos un carácter especial", pass.any { "!@#$%^&*(),.?\":{}|<>".contains(it) })
+                }
+            }
+
             Spacer(Modifier.height(14.dp))
 
             // Confirmar contraseña
@@ -119,31 +150,33 @@ fun RegisterScreen(
                 label         = { Text("Confirmar contraseña") },
                 leadingIcon   = { Icon(Icons.Rounded.Lock, null, tint = TextSecondary) },
                 visualTransformation = PasswordVisualTransformation(),
-                isError  = confirm.isNotEmpty() && pass != confirm,
+                isError  = confirm.isNotEmpty() && !passwordsMatch,
+                supportingText = {
+                    if (confirm.isNotEmpty() && !passwordsMatch) {
+                        Text("Las contraseñas no coinciden", color = ColorGasto)
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 shape    = RoundedCornerShape(14.dp),
                 colors   = financeTextFieldColors()
             )
-            if (confirm.isNotEmpty() && pass != confirm) {
-                Text(
-                    "Las contraseñas no coinciden",
-                    color    = ColorGasto,
-                    style    = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.align(Alignment.Start).padding(start = 4.dp, top = 4.dp)
-                )
-            }
 
             Spacer(Modifier.height(24.dp))
 
             // Botón registrar
             Button(
                 onClick  = {
-                    if (pass == confirm) viewModel.register(email, pass)
+                    if (isEmailValid && isPasswordValid && passwordsMatch) {
+                        viewModel.register(email, pass)
+                    }
                 },
                 enabled  = state !is RegisterState.Loading
                         && email.isNotBlank()
-                        && pass.length >= 6
-                        && pass == confirm,
+                        && pass.isNotEmpty()
+                        && confirm.isNotEmpty()
+                        && isEmailValid
+                        && isPasswordValid
+                        && passwordsMatch,
                 modifier = Modifier.fillMaxWidth().height(54.dp),
                 shape    = RoundedCornerShape(14.dp),
                 colors   = ButtonDefaults.buttonColors(containerColor = AccentPrimary)
@@ -159,7 +192,7 @@ fun RegisterScreen(
                 }
             }
 
-            // Mensaje de error
+            // Mensaje de error del servidor
             if (state is RegisterState.Error) {
                 Spacer(Modifier.height(12.dp))
                 Card(
@@ -182,5 +215,19 @@ fun RegisterScreen(
                 Text("Inicia sesión", color = AccentPrimary, fontWeight = FontWeight.Bold)
             }
         }
+    }
+}
+
+@Composable
+fun RequirementRow(text: String, satisfied: Boolean) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            if (satisfied) Icons.Rounded.CheckCircle else Icons.Rounded.Cancel,
+            null,
+            tint = if (satisfied) ColorIngreso else ColorGasto,
+            modifier = Modifier.size(14.dp)
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(text, style = MaterialTheme.typography.labelSmall, color = if (satisfied) ColorIngreso else TextMuted)
     }
 }
