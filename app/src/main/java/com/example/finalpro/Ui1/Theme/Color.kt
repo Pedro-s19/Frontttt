@@ -2,32 +2,39 @@ package com.example.finalpro.Ui1.Theme
 
 import androidx.compose.ui.graphics.Color
 
-// Fondo oscuro — estilo "fintech premium"
-val BgPrimary      = Color(0xFF0A0E1A)
-val BgSurface      = Color(0xFF131929)
-val BgCard         = Color(0xFF1A2235)
-val BgCardAlt      = Color(0xFF1F2A40)
-val Border         = Color(0xFF2A3550)
+// ─── Fondos ───────────────────────────────────────────────
+val BgPrimary     = Color(0xFFF4F5F8)   // gris claro app background
+val BgSurface     = Color(0xFFFFFFFF)   // superficies blancas
+val BgCard        = Color(0xFFFFFFFF)   // tarjetas
+val BgCardAlt     = Color(0xFFF0F2F5)   // tarjeta alternativa
+val Border        = Color(0xFFE2E6ED)   // bordes suaves
 
-// Acento principal — azul eléctrico
-val AccentPrimary  = Color(0xFF4F8EF7)
-val AccentGlow     = Color(0x334F8EF7)
-val AccentSecond   = Color(0xFF00D4AA)  // verde agua
+// ─── Verde principal ──────────────────────────────────────
+val GreenPrimary  = Color(0xFF1A7A4A)   // verde principal
+val GreenLight    = Color(0xFFE8F5EE)   // fondo verde claro
+val GreenGlow     = Color(0x221A7A4A)   // resplandor verde
 
-// Transacciones
-val ColorIngreso   = Color(0xFF00D4AA)   // verde
-val ColorGasto     = Color(0xFFFF5C5C)   // rojo suave
-val ColorWarning   = Color(0xFFFFB74D)   // naranja
-val ColorInfo      = Color(0xFF64B5F6)   // azul claro
+// ─── Semántica financiera ─────────────────────────────────
+val ColorIngreso  = Color(0xFF1A7A4A)   // verde = ingresos/saldo positivo
+val ColorGasto    = Color(0xFFC0392B)   // rojo = error/gasto/bloqueo
+val ColorWarning  = Color(0xFFB45309)   // ámbar = advertencia
+val ColorInfo     = Color(0xFF1D4ED8)   // azul = metas/progreso
 
-// Texto
-val TextPrimary    = Color(0xFFECF0FF)
-val TextSecondary  = Color(0xFF8896B3)
-val TextMuted      = Color(0xFF4A5568)
+// ─── Texto ────────────────────────────────────────────────
+val TextPrimary   = Color(0xFF0F1117)   // texto oscuro principal
+val TextSecondary = Color(0xFF5C6780)   // texto secundario
+val TextMuted     = Color(0xFF9BA5B8)   // texto apagado
 
-// Gráficas — paleta para categorías
+// ─── Tarjeta balance premium (dark) ──────────────────────
+val CardDarkBg    = Color(0xFF0F1117)   // fondo tarjeta premium
+
+// ─── Paleta de gráficos ───────────────────────────────────
 val ChartPalette = listOf(
-    Color(0xFF4F8EF7), Color(0xFF00D4AA), Color(0xFFFF6B6B),
-    Color(0xFFFFB74D), Color(0xFFAB47BC), Color(0xFF26C6DA),
-    Color(0xFFEF5350), Color(0xFF66BB6A)
+    Color(0xFF1A7A4A), Color(0xFF1D4ED8), Color(0xFFC0392B),
+    Color(0xFFB45309), Color(0xFF7C3AED), Color(0xFF0891B2),
+    Color(0xFFD97706), Color(0xFF059669)
 )
+
+val AccentPrimary = Color(0xFF1D4ED8)   // Azul principal para botones e iconos
+val AccentGlow    = Color(0x331D4ED8)   // Resplandor sutil (opcional, usado en LoginScreen)
+val AccentSecond  = Color(0xFF7C3AED)   // Púrpura para gráficos secundarios (si se usa)

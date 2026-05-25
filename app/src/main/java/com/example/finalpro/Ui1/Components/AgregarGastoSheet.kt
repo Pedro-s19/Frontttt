@@ -7,6 +7,7 @@ import androidx.compose.material.icons.rounded.EditCalendar
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.finalpro.Data.Remote.Dto.Response.CategoriaResponse
 import com.example.finalpro.Ui1.Screens.Auth.financeTextFieldColors
@@ -20,8 +21,8 @@ fun AgregarGastoSheet(
     onDismiss: () -> Unit,
     onConfirm: (monto: Double, descripcion: String, fecha: String, categoriaId: String) -> Unit,
     categorias: List<CategoriaResponse>,
-    ingresoMensual: Double = 0.0,
-    gastoAcumulado: Double = 0.0
+    saldoDisponible: Double,
+    moneda: String = "COP"
 ) {
     var monto by remember { mutableStateOf("") }
     var descripcion by remember { mutableStateOf("") }
@@ -29,7 +30,15 @@ fun AgregarGastoSheet(
     var selectedCategoria by remember { mutableStateOf<CategoriaResponse?>(categorias.firstOrNull()) }
     var expanded by remember { mutableStateOf(false) }
     var datePickerOpen by remember { mutableStateOf(false) }
-    var showWarning by remember { mutableStateOf(false) }
+
+    val montoDouble = monto.toDoubleOrNull() ?: 0.0
+
+    // ✅ CORREGIDO: si saldoDisponible == Double.MAX_VALUE significa que no se pudo
+    //    cargar del servidor. En ese caso no mostramos error de saldo insuficiente
+    //    y dejamos que el backend valide en el momento de guardar.
+    val saldoConocido = saldoDisponible < Double.MAX_VALUE
+    val saldoInsuficiente = saldoConocido && montoDouble > 0 && montoDouble > saldoDisponible
+    val montoValido = montoDouble > 0 && !saldoInsuficiente && selectedCategoria != null
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -37,17 +46,30 @@ fun AgregarGastoSheet(
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
         Column(
-            Modifier.fillMaxWidth().padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Text("Agregar gasto", style = MaterialTheme.typography.headlineSmall, color = TextPrimary)
+            Text("Agregar gasto", style = MaterialTheme.typography.titleLarge, color = TextPrimary, fontWeight = FontWeight.Bold)
+
+            // Solo mostramos el banner de saldo si el dato fue cargado exitosamente
+            if (saldoConocido) {
+                SaldoDisponibleBanner(saldoDisponible, moneda)
+            }
 
             AmountTextField(
                 value = monto,
                 onValueChange = { monto = it },
-                label = "Monto (COP)",
-                modifier = Modifier.fillMaxWidth()
+                label = "Monto",
+                modifier = Modifier.fillMaxWidth(),
+                isError = saldoInsuficiente
             )
+
+            if (saldoInsuficiente) {
+                ErrorSaldoText(saldoDisponible, moneda)
+            }
 
             OutlinedTextField(
                 value = descripcion,
@@ -65,12 +87,12 @@ fun AgregarGastoSheet(
                 readOnly = true,
                 shape = RoundedCornerShape(14.dp),
                 colors = financeTextFieldColors(),
-                modifier = Modifier.fillMaxWidth(),
                 trailingIcon = {
                     IconButton(onClick = { datePickerOpen = true }) {
-                        Icon(Icons.Rounded.EditCalendar, null)
+                        Icon(Icons.Rounded.EditCalendar, null, tint = GreenPrimary)
                     }
-                }
+                },
+                modifier = Modifier.fillMaxWidth()
             )
 
             if (datePickerOpen) {
@@ -80,10 +102,7 @@ fun AgregarGastoSheet(
                 )
             }
 
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = it }
-            ) {
+            ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
                 OutlinedTextField(
                     value = selectedCategoria?.nombre ?: "",
                     onValueChange = {},
@@ -95,112 +114,41 @@ fun AgregarGastoSheet(
                     colors = financeTextFieldColors(),
                     modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryEditable)
                 )
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
+                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                     categorias.forEach { cat ->
                         DropdownMenuItem(
                             text = { Text(cat.nombre) },
                             leadingIcon = { Text(cat.icono ?: "📦") },
-                            onClick = {
-                                selectedCategoria = cat
-                                expanded = false
-                            }
+                            onClick = { selectedCategoria = cat; expanded = false }
                         )
                     }
                 }
             }
 
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedButton(
                     onClick = onDismiss,
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.weight(1f).height(52.dp)
-                ) {
-                    Text("Cancelar")
-                }
+                ) { Text("Cancelar") }
+
                 Button(
                     onClick = {
-                        monto.toDoubleOrNull()?.let { m ->
+                        if (montoValido) {
                             selectedCategoria?.let { cat ->
-                                if (ingresoMensual > 0 && (gastoAcumulado + m) > ingresoMensual) {
-                                    showWarning = true
-                                } else {
-                                    onConfirm(m, descripcion, fecha, cat.id)
-                                }
+                                onConfirm(montoDouble, descripcion, fecha, cat.id)
                             }
                         }
                     },
+                    enabled = montoValido,
                     shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentPrimary),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = GreenPrimary,
+                        disabledContainerColor = Border
+                    ),
                     modifier = Modifier.weight(1f).height(52.dp)
-                ) {
-                    Text("Guardar")
-                }
+                ) { Text("Guardar", fontWeight = FontWeight.Bold) }
             }
         }
-    }
-
-    if (showWarning) {
-        AlertDialog(
-            onDismissRequest = { showWarning = false },
-            title = { Text("Advertencia", color = TextPrimary) },
-            text = { Text("Este gasto hará que excedas tus ingresos mensuales. ¿Estás seguro?", color = TextSecondary) },
-            confirmButton = {
-                TextButton(onClick = {
-                    showWarning = false
-                    monto.toDoubleOrNull()?.let { m ->
-                        selectedCategoria?.let { cat ->
-                            onConfirm(m, descripcion, fecha, cat.id)
-                        }
-                    }
-                }) { Text("Sí, continuar") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showWarning = false }) { Text("Cancelar") }
-            },
-            containerColor = BgCard
-        )
-    }
-}
-
-// -----------------------------------------------------------
-// Componente personalizado DatePickerDialog (el que tenías antes)
-// -----------------------------------------------------------
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DatePickerDialog(
-    onDismiss: () -> Unit,
-    onConfirm: (LocalDate) -> Unit
-) {
-    val datePickerState = rememberDatePickerState()
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    datePickerState.selectedDateMillis?.let { millis ->
-                        onConfirm(
-                            java.time.Instant.ofEpochMilli(millis)
-                                .atZone(java.time.ZoneId.systemDefault())
-                                .toLocalDate()
-                        )
-                    }
-                }
-            ) {
-                Text("Aceptar")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
-            }
-        }
-    ) {
-        DatePicker(state = datePickerState)
     }
 }

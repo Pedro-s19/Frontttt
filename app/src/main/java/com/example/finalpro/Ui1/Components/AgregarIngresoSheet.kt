@@ -30,7 +30,9 @@ fun AgregarIngresoSheet(
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
         Column(
-            Modifier.fillMaxWidth().padding(24.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text("Agregar ingreso", style = MaterialTheme.typography.headlineSmall, color = TextPrimary)
@@ -61,12 +63,13 @@ fun AgregarIngresoSheet(
                 modifier = Modifier.fillMaxWidth(),
                 trailingIcon = {
                     IconButton(onClick = { datePickerOpen = true }) {
-                        Icon(Icons.Rounded.EditCalendar, null)
+                        Icon(Icons.Rounded.EditCalendar, null, tint = GreenPrimary)
                     }
                 }
             )
 
             if (datePickerOpen) {
+                // usa la única definición existente (de AgregarMetaSheet.kt)
                 DatePickerDialog(
                     onDismiss = { datePickerOpen = false },
                     onConfirm = { fecha = it.toString(); datePickerOpen = false }
@@ -89,7 +92,7 @@ fun AgregarIngresoSheet(
                         monto.toDoubleOrNull()?.let { onConfirm(it, descripcion, fecha) }
                     },
                     shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentPrimary),
+                    colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
                     modifier = Modifier.weight(1f).height(52.dp)
                 ) {
                     Text("Guardar")

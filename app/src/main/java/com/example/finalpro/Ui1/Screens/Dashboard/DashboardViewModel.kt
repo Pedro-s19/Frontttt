@@ -27,43 +27,40 @@ class DashboardViewModel @Inject constructor(
     private val _loading = MutableStateFlow(true)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
 
-    private val _safeToSpend = MutableStateFlow(0.0)
-    val safeToSpend: StateFlow<Double> = _safeToSpend.asStateFlow()
-
-    private val _diasRestantes = MutableStateFlow(0)
-    val diasRestantes: StateFlow<Int> = _diasRestantes.asStateFlow()
-
-
     private val _alertas = MutableStateFlow<List<String>>(emptyList())
     val alertas: StateFlow<List<String>> = _alertas.asStateFlow()
+
+    // Datos de los últimos 7 días con gastos
+    private val _gastosSemana = MutableStateFlow<Map<String, Double>>(emptyMap())
+    val gastosSemana: StateFlow<Map<String, Double>> = _gastosSemana.asStateFlow()
 
     init { cargarResumen() }
 
     fun cargarResumen() {
         viewModelScope.launch {
             _loading.value = true
-            val ahora = LocalDate.now()
-            reporteRepository.resumenMensual(ahora.year, ahora.monthValue)
-                .onSuccess { res ->
-                    _resumen.value = res
-                    calcularSafeToSpend(res)
-                }
-            // Obtener alertas
+            val hoy = LocalDate.now()
+            // Resumen mensual
+            reporteRepository.resumenMensual(hoy.year, hoy.monthValue)
+                .onSuccess { _resumen.value = it }
+            // Alertas
             alertaRepository.obtenerAlertas()
                 .onSuccess { _alertas.value = it.alertas }
                 .onFailure { _alertas.value = emptyList() }
+            // Gastos diarios del mes
+            reporteRepository.gastosDiarios(hoy.year, hoy.monthValue)
+                .onSuccess { gastosMap ->
+                    // Últimos 7 días
+                    val ultimos7 = LinkedHashMap<String, Double>()
+                    for (i in 6 downTo 0) {
+                        val fecha = hoy.minusDays(i.toLong())
+                        val gasto = gastosMap[fecha] ?: 0.0
+                        ultimos7[fecha.dayOfMonth.toString()] = gasto
+                    }
+                    _gastosSemana.value = ultimos7
+                }
+                .onFailure { _gastosSemana.value = emptyMap() }
             _loading.value = false
         }
-    }
-
-    private fun calcularSafeToSpend(resumen: ResumenMensualResponse) {
-        val ingresos = resumen.totalIngresos
-        val gastos = resumen.totalGastos
-        val metaAhorro = ingresos * 0.2
-        val disponible = ingresos - gastos - metaAhorro
-        _safeToSpend.value = disponible.coerceAtLeast(0.0)
-        val hoy = LocalDate.now()
-        val diasDelMes = hoy.lengthOfMonth()
-        _diasRestantes.value = (diasDelMes - hoy.dayOfMonth).coerceAtLeast(0)
     }
 }

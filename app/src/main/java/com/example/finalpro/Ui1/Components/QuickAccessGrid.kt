@@ -21,7 +21,7 @@ fun QuickAccessGrid(navController: NavController) {
         Triple("Ingresos",    Icons.Rounded.AttachMoney,   Screen.Ingresos.route),
         Triple("Presupuesto", Icons.Rounded.PieChart,      Screen.Presupuesto.route),
         Triple("Metas",       Icons.Rounded.EmojiEvents,   Screen.Metas.route),
-        Triple("Comparar", Icons.Rounded.BarChart,   Screen.Comparativas.route)
+        Triple("Comparar",    Icons.Rounded.BarChart,      Screen.Comparativas.route)
     )
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         items.forEach { (title, icon, route) ->
@@ -30,14 +30,12 @@ fun QuickAccessGrid(navController: NavController) {
                     .weight(1f)
                     .aspectRatio(1f),
                 onClick = {
-                    navController.navigate(route){
-                        popUpTo(Screen.Dashboard.route){
-                            saveState = true
-                        }
+                    // ✅ CORREGIDO: se eliminó popUpTo(Screen.Dashboard.route) que sacaba
+                    //    el Dashboard del backstack e impedía volver a Inicio con "Atrás"
+                    navController.navigate(route) {
                         launchSingleTop = true
                         restoreState = true
                     }
-
                 },
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = BgCard),

@@ -33,8 +33,8 @@ class GastosViewModel @Inject constructor(
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
 
-    private val _ingresosMes = MutableStateFlow(0.0)
-    val ingresosMes: StateFlow<Double> = _ingresosMes.asStateFlow()
+    private val _saldoDisponible = MutableStateFlow(0.0)
+    val saldoDisponible: StateFlow<Double> = _saldoDisponible.asStateFlow()
 
     private val _alertas = MutableStateFlow<List<String>>(emptyList())
     val alertas: StateFlow<List<String>> = _alertas.asStateFlow()
@@ -48,7 +48,14 @@ class GastosViewModel @Inject constructor(
             categoriaRepository.listar().onSuccess { _categorias.value = it }
             val hoy = LocalDate.now()
             reporteRepository.resumenMensual(hoy.year, hoy.monthValue)
-                .onSuccess { _ingresosMes.value = it.totalIngresos }
+                .onSuccess {
+                    _saldoDisponible.value = it.balance.coerceAtLeast(0.0)
+                }
+                .onFailure {
+                    // ✅ CORREGIDO: si el servidor no responde (timeout / dormido),
+                    //    permitimos gastar igualmente. El backend hará la validación real.
+                    _saldoDisponible.value = Double.MAX_VALUE
+                }
             alertaRepository.obtenerAlertas()
                 .onSuccess { _alertas.value = it.alertas }
                 .onFailure { _alertas.value = emptyList() }

@@ -1,21 +1,20 @@
 package com.example.finalpro.Ui1.Theme
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-
 @Composable
 fun FinalProTheme(content: @Composable () -> Unit) {
-    val colorScheme = darkColorScheme(
-        primary           = AccentPrimary,
-        secondary         = AccentSecond,
+    val colorScheme = lightColorScheme(
+        primary           = GreenPrimary,
+        secondary         = ColorInfo,
         background        = BgPrimary,
         surface           = BgSurface,
-        surfaceVariant    = BgCard,
+        surfaceVariant    = BgCardAlt,
         onPrimary         = Color.White,
-        onSecondary       = Color.Black,
+        onSecondary       = Color.White,
         onBackground      = TextPrimary,
         onSurface         = TextPrimary,
         onSurfaceVariant  = TextSecondary,

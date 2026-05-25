@@ -9,11 +9,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.finalpro.Ui1.Screens.Auth.financeTextFieldColors
-import com.example.finalpro.Ui1.Theme.AccentPrimary
-import com.example.finalpro.Ui1.Theme.BgCard
-import com.example.finalpro.Ui1.Theme.BgSurface
-import com.example.finalpro.Ui1.Theme.TextPrimary
-import com.example.finalpro.Ui1.Theme.TextSecondary
+import com.example.finalpro.Ui1.Theme.*
+import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,7 +63,7 @@ fun AgregarMetaSheet(
                 modifier = Modifier.fillMaxWidth(),
                 trailingIcon = {
                     IconButton(onClick = { datePickerOpen = true }) {
-                        Icon(Icons.Rounded.EditCalendar, null)
+                        Icon(Icons.Rounded.EditCalendar, null, tint = GreenPrimary)
                     }
                 }
             )
@@ -100,7 +97,7 @@ fun AgregarMetaSheet(
                         }
                     },
                     shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentPrimary),
+                    colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
                     modifier = Modifier.weight(1f).height(52.dp)
                 ) {
                     Text("Guardar")

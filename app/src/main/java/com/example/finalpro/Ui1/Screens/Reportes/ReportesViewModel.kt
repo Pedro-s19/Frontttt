@@ -47,18 +47,26 @@ class ReportesViewModel @Inject constructor(
         viewModelScope.launch {
             _loading.value = true
             _error.value = null
+
+            // ✅ CORREGIDO: mensaje de error amigable en lugar del texto técnico de OkHttp
+            val mensajeError = "No se pudo conectar al servidor. Puede estar iniciando, intenta de nuevo en unos segundos."
+
             reporteRepository.tendenciaDiaria(anio, mes, moneda)
                 .onSuccess { _tendencia.value = it }
-                .onFailure { _error.value = it.message }
+                .onFailure { _error.value = mensajeError }
+
             reporteRepository.distribucionCategorias(anio, mes, moneda)
                 .onSuccess { _distribucion.value = it }
-                .onFailure { if (_error.value == null) _error.value = it.message }
+                .onFailure { if (_error.value == null) _error.value = mensajeError }
+
             reporteRepository.resumenMensual(anio, mes, moneda)
                 .onSuccess { _resumen.value = it }
-                .onFailure { if (_error.value == null) _error.value = it.message }
+                .onFailure { if (_error.value == null) _error.value = mensajeError }
+
             reporteRepository.gastosDiarios(anio, mes, moneda)
                 .onSuccess { _gastosDiarios.value = it }
-                .onFailure { if (_error.value == null) _error.value = it.message }
+                .onFailure { if (_error.value == null) _error.value = mensajeError }
+
             _loading.value = false
         }
     }

@@ -3,6 +3,7 @@ package com.example.finalpro.Ui1.Components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
@@ -11,8 +12,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.finalpro.Data.Remote.Dto.Response.MetaAhorroResponse
 import com.example.finalpro.Ui1.Theme.*
 
@@ -21,200 +25,223 @@ fun MetaAhorroCard(
     meta: MetaAhorroResponse,
     onAbonar: (Double) -> Unit,
     onDelete: () -> Unit,
-    onEditar: (nuevoObjetivo: Double) -> Unit = {}
+    onEditar: (Double) -> Unit,
+    saldoDisponible: Double = 0.0   // <-- nuevo parámetro
 ) {
-    val progress = (meta.porcentajeCompletado / 100.0).toFloat().coerceIn(0f, 1f)
-    val progressColor = when {
-        progress >= 1f   -> ColorIngreso
-        progress >= 0.6f -> AccentSecond
-        progress >= 0.3f -> ColorWarning
-        else             -> AccentPrimary
+    val progreso = if (meta.montoObjetivo > 0) (meta.montoActual / meta.montoObjetivo).coerceIn(0.0, 1.0).toFloat() else 0f
+    val completada = meta.montoActual >= meta.montoObjetivo
+
+    val barColor = when {
+        completada      -> ColorIngreso
+        progreso > 0.75 -> GreenPrimary
+        progreso > 0.40 -> ColorWarning
+        else            -> ColorInfo
     }
 
-    var abonoText by remember { mutableStateOf("") }
-    var showEditDialog by remember { mutableStateOf(false) }
+    var montoAbono   by remember { mutableStateOf("") }
+    var showAbono    by remember { mutableStateOf(false) }
+    var showEdit     by remember { mutableStateOf(false) }
+
+    val abono = montoAbono.toDoubleOrNull() ?: 0.0
+    val restante = (meta.montoObjetivo - meta.montoActual).coerceAtLeast(0.0)
+    val saldoInsuficiente = abono > 0 && abono > saldoDisponible
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape    = RoundedCornerShape(18.dp),
-        colors   = CardDefaults.cardColors(containerColor = BgCard),
-        border   = androidx.compose.foundation.BorderStroke(1.dp, Border)
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = BgSurface),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp, if (completada) ColorIngreso.copy(alpha = 0.3f) else Border
+        )
     ) {
-        Column(Modifier.padding(16.dp)) {
-            // Encabezado
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment     = Alignment.CenterVertically
-            ) {
+        Column(Modifier.padding(18.dp)) {
+            // Header
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(progressColor.copy(alpha = 0.15f)),
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(barColor.copy(alpha = 0.1f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            Icons.Rounded.EmojiEvents, null,
-                            tint     = progressColor,
-                            modifier = Modifier.size(22.dp)
+                            if (completada) Icons.Rounded.CheckCircle else Icons.Rounded.EmojiEvents,
+                            null, tint = barColor, modifier = Modifier.size(24.dp)
                         )
                     }
-                    Spacer(Modifier.width(10.dp))
+                    Spacer(Modifier.width(12.dp))
                     Column {
-                        Text(
-                            meta.nombre,
-                            style      = MaterialTheme.typography.titleMedium,
-                            color      = TextPrimary,
-                            fontWeight = FontWeight.Bold
-                        )
-                        meta.fechaLimite?.let {
-                            Text("Límite: $it", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                        Text(meta.nombre, style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+                        val estadoLabel = when {
+                            completada      -> "✅ Completada"
+                            progreso > 0.75 -> "🔥 Próxima a completarse"
+                            else            -> "En curso"
                         }
+                        Text(estadoLabel, style = MaterialTheme.typography.labelSmall,
+                            color = if (completada) ColorIngreso else TextSecondary)
                     }
                 }
                 Row {
-                    IconButton(onClick = { showEditDialog = true }, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.Rounded.Edit, null, tint = AccentPrimary, modifier = Modifier.size(18.dp))
+                    if (!completada) {
+                        IconButton(onClick = { showEdit = !showEdit }, modifier = Modifier.size(32.dp)) {
+                            Icon(Icons.Rounded.Edit, null, tint = TextMuted, modifier = Modifier.size(16.dp))
+                        }
                     }
-                    IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.Rounded.Delete, null, tint = ColorGasto, modifier = Modifier.size(18.dp))
+                    IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.Rounded.Delete, null, tint = ColorGasto.copy(alpha = 0.7f), modifier = Modifier.size(16.dp))
                     }
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(16.dp))
 
-            // Barra de progreso
+            // Progreso
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    formatMoney(meta.montoActual, meta.moneda),
+                    style = MaterialTheme.typography.titleMedium, color = barColor, fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "${(progreso * 100).toInt()}%",
+                    style = MaterialTheme.typography.titleMedium, color = barColor, fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(Modifier.height(6.dp))
             Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(10.dp)
-                    .clip(RoundedCornerShape(5.dp))
-                    .background(Border)
+                Modifier.fillMaxWidth().height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)).background(Border)
             ) {
                 Box(
                     Modifier
-                        .fillMaxWidth(progress)
-                        .height(10.dp)
-                        .clip(RoundedCornerShape(5.dp))
-                        .background(
-                            Brush.horizontalGradient(listOf(progressColor, progressColor.copy(alpha = 0.6f)))
-                        )
+                        .fillMaxWidth(progreso)
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Brush.horizontalGradient(listOf(barColor, barColor.copy(alpha = 0.6f))))
+                )
+            }
+            Spacer(Modifier.height(6.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Ahorrado", style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                Text(
+                    "Objetivo: ${formatMoney(meta.montoObjetivo, meta.moneda)}",
+                    style = MaterialTheme.typography.labelSmall, color = TextMuted
                 )
             }
 
-            Spacer(Modifier.height(8.dp))
-
-            // Montos
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment     = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text("Ahorrado", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-                    Text(
-                        formatMoney(meta.montoActual, meta.moneda),
-                        color      = progressColor,
-                        fontWeight = FontWeight.Bold,
-                        style      = MaterialTheme.typography.titleMedium
-                    )
-                }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Progreso", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-                    Text(
-                        "${meta.porcentajeCompletado.toInt()}%",
-                        color      = progressColor,
-                        fontWeight = FontWeight.Bold,
-                        style      = MaterialTheme.typography.titleMedium
-                    )
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("Objetivo", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-                    Text(
-                        formatMoney(meta.montoObjetivo, meta.moneda),
-                        color      = TextPrimary,
-                        fontWeight = FontWeight.Bold,
-                        style      = MaterialTheme.typography.titleMedium
-                    )
-                }
-            }
-
-            // Meta lograda
-            if (progress >= 1f) {
+            // Banner completada
+            if (completada) {
                 Spacer(Modifier.height(10.dp))
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(ColorIngreso.copy(alpha = 0.1f))
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(ColorIngreso.copy(alpha = 0.08f))
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Rounded.CheckCircle, null, tint = ColorIngreso, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("¡Meta lograda! 🎉", color = ColorIngreso, fontWeight = FontWeight.Bold)
+                    Text("🏆", fontSize = 16.sp)
+                    Spacer(Modifier.width(8.dp))
+                    Text("¡Meta alcanzada! Logro desbloqueado", color = ColorIngreso,
+                        style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                 }
-            } else {
-                // Campo para abonar
+            }
+
+            // Editar objetivo
+            if (showEdit) {
+                var nuevoObjetivo by remember { mutableStateOf(meta.montoObjetivo.toInt().toString()) }
                 Spacer(Modifier.height(12.dp))
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment     = Alignment.CenterVertically
-                ) {
-                    AmountTextField(
-                        value = abonoText,
-                        onValueChange = { abonoText = it },
-                        label = "Monto a abonar",
-                        modifier = Modifier.weight(1f)
+                HorizontalDivider(color = Border)
+                Spacer(Modifier.height(12.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = nuevoObjetivo,
+                        onValueChange = { nuevoObjetivo = it },
+                        label = { Text("Nuevo objetivo") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = GreenPrimary,
+                            unfocusedBorderColor = Border,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary
+                        )
                     )
                     Button(
                         onClick = {
-                            abonoText.toDoubleOrNull()?.let { onAbonar(it); abonoText = "" }
+                            nuevoObjetivo.toDoubleOrNull()?.let { onEditar(it); showEdit = false }
                         },
-                        enabled = abonoText.toDoubleOrNull() != null,
-                        shape   = RoundedCornerShape(12.dp),
-                        colors  = ButtonDefaults.buttonColors(containerColor = AccentPrimary)
+                        colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
+                        shape = RoundedCornerShape(12.dp)
+                    ) { Text("OK") }
+                }
+            }
+
+            // Abonar
+            if (!completada) {
+                Spacer(Modifier.height(12.dp))
+                if (!showAbono) {
+                    OutlinedButton(
+                        onClick = { showAbono = true },
+                        modifier = Modifier.fillMaxWidth().height(44.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, GreenPrimary.copy(alpha = 0.5f))
                     ) {
-                        Text("Abonar", fontWeight = FontWeight.Bold)
+                        Icon(Icons.Rounded.Add, null, tint = GreenPrimary, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Abonar", color = GreenPrimary, fontWeight = FontWeight.SemiBold)
+                    }
+                } else {
+                    HorizontalDivider(color = Border)
+                    Spacer(Modifier.height(10.dp))
+                    OutlinedTextField(
+                        value = montoAbono,
+                        onValueChange = { montoAbono = it },
+                        label = { Text("Monto a abonar") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = RoundedCornerShape(12.dp),
+                        isError = saldoInsuficiente,
+                        supportingText = if (saldoInsuficiente) {
+                            { Text("No tienes saldo suficiente. Saldo disponible: ${formatMoney(saldoDisponible, meta.moneda)}", color = ColorGasto) }
+                        } else if (abono > 0 && abono > restante) {
+                            { Text("Supera el restante (${formatMoney(restante, meta.moneda)})", color = ColorWarning) }
+                        } else null,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = GreenPrimary,
+                            unfocusedBorderColor = Border,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary,
+                            errorBorderColor = ColorGasto
+                        )
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OutlinedButton(
+                            onClick = { showAbono = false; montoAbono = "" },
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1f).height(46.dp)
+                        ) { Text("Cancelar") }
+                        Button(
+                            onClick = {
+                                if (abono > 0 && !saldoInsuficiente) {
+                                    onAbonar(abono)
+                                    showAbono = false
+                                    montoAbono = ""
+                                }
+                            },
+                            enabled = abono > 0 && !saldoInsuficiente,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = GreenPrimary,
+                                disabledContainerColor = Border
+                            ),
+                            modifier = Modifier.weight(1f).height(46.dp)
+                        ) { Text("Abonar", fontWeight = FontWeight.Bold) }
                     }
                 }
             }
         }
-    }
-
-    // Diálogo editar objetivo
-    if (showEditDialog) {
-        var nuevoObjetivo by remember { mutableStateOf(meta.montoObjetivo.toInt().toString()) }
-        AlertDialog(
-            onDismissRequest = { showEditDialog = false },
-            containerColor   = BgCard,
-            title = { Text("Editar objetivo", color = TextPrimary, fontWeight = FontWeight.Bold) },
-            text = {
-                AmountTextField(
-                    value = nuevoObjetivo,
-                    onValueChange = { nuevoObjetivo = it },
-                    label = "Nuevo monto objetivo"
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        nuevoObjetivo.toDoubleOrNull()?.let { onEditar(it) }
-                        showEditDialog = false
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentPrimary)
-                ) { Text("Guardar") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showEditDialog = false }) {
-                    Text("Cancelar", color = TextSecondary)
-                }
-            }
-        )
     }
 }

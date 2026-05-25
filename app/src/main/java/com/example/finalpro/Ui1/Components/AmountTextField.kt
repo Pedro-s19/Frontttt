@@ -20,7 +20,8 @@ fun AmountTextField(
     label: String,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    singleLine: Boolean = true
+    singleLine: Boolean = true,
+    isError: Boolean = false
 ) {
     val decimalFormat = remember {
         val symbols = DecimalFormatSymbols(Locale.getDefault())
@@ -50,7 +51,8 @@ fun AmountTextField(
         shape = RoundedCornerShape(14.dp),
         colors = financeTextFieldColors(),
         modifier = modifier,
-        enabled = enabled
+        enabled = enabled,
+        isError = isError
     )
 }
 

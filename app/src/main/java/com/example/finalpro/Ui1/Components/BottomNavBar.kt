@@ -1,13 +1,12 @@
 package com.example.finalpro.Ui1.Components
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -19,18 +18,25 @@ import com.example.finalpro.Ui1.Theme.*
 fun BottomNavBar(navController: NavController) {
     val currentRoute by navController.currentBackStackEntryAsState().let {
         val entry = it.value
-        androidx.compose.runtime.remember(entry) {
-            androidx.compose.runtime.derivedStateOf { entry?.destination?.route }
+        remember(entry) {
+            derivedStateOf { entry?.destination?.route }
         }
     }
 
     NavigationBar(
         containerColor = BgSurface,
         tonalElevation = 0.dp,
-        modifier = Modifier.border(
-            BorderStroke(1.dp, Border),
-            RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
-        )
+        modifier = Modifier
+            .shadow(
+                elevation = 12.dp,
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                ambientColor = GreenPrimary.copy(alpha = 0.08f),
+                spotColor = GreenPrimary.copy(alpha = 0.12f)
+            )
+            .background(
+                color = BgSurface,
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+            )
     ) {
         bottomNavItems.forEach { item ->
             val selected = currentRoute == item.route
@@ -39,12 +45,9 @@ fun BottomNavBar(navController: NavController) {
                 onClick = {
                     if (currentRoute != item.route) {
                         navController.navigate(item.route) {
-
-                            popUpTo(Screen.Dashboard.route) {
-                                saveState = true
-                            }
+                            popUpTo(Screen.Dashboard.route) { saveState = true }
                             launchSingleTop = true
-                            restoreState    = true
+                            restoreState = true
                         }
                     }
                 },
@@ -52,18 +55,22 @@ fun BottomNavBar(navController: NavController) {
                     Icon(
                         item.icon, null,
                         modifier = Modifier.size(22.dp),
-                        tint = if (selected) AccentPrimary else TextSecondary
+                        tint = if (selected) GreenPrimary else TextMuted
                     )
                 },
                 label = {
                     Text(
                         item.label,
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (selected) AccentPrimary else TextSecondary
+                        color = if (selected) GreenPrimary else TextMuted
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
-                    indicatorColor = AccentGlow
+                    indicatorColor = GreenLight,
+                    selectedIconColor = GreenPrimary,
+                    selectedTextColor = GreenPrimary,
+                    unselectedIconColor = TextMuted,
+                    unselectedTextColor = TextMuted
                 )
             )
         }

@@ -24,8 +24,8 @@ object RetrofitClient {
                 }.build()
                 chain.proceed(req)
             }
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(90, TimeUnit.SECONDS)
+            .readTimeout(90, TimeUnit.SECONDS)
             .build()
 
         return Retrofit.Builder()
